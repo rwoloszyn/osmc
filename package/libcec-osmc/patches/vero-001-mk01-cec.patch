@@ -1,19 +1,19 @@
-From 0ee4cb8788c1a72680c4581570c6d19697dd291b Mon Sep 17 00:00:00 2001
+From 575ac193e376ccfd73d9c43eb38ea7ee202deb4e Mon Sep 17 00:00:00 2001
 From: Matus Kral <matuskral@me.com>
 Date: Wed, 10 Sep 2014 22:23:37 +0200
-Subject: [PATCH] - update to IMX6 support - handle releasing adapter better on
- close and unregister LA (change to 15) - don't change to bad PA (0000) -
- align cec_message data structure - IMX6: threaded PA change reporter to avoid
- blocking main process() - when transmitting PA, CECHandler transmits PA with
- bSuppressWait set to NO. Waiting here will block main Process() which should
- receive NACK/ACK (but it can't because it is it who called callback which is
- triggering PA resending) - IMX6: allowing infinite timeout on read from dev
- file. - SocketRead() was changed to polling (instead of select()). In order
- for this to work, kernel driver must be returning POLLHUP to interrupt
- waiting SocketRead(). Otherwise infinite timeout will block CEC adapter
- termination. - Building adaptations for imx6 - Don't Wait for PA update
- thread's start. Return immediately. - Fix stopping the thread / closing the
- port
+Subject: [PATCH 2/3] - update to IMX6 support - handle releasing adapter
+ better on close and unregister LA (change to 15) - don't change to bad PA
+ (0000) - align cec_message data structure - IMX6: threaded PA change reporter
+ to avoid blocking main process() - when transmitting PA, CECHandler transmits
+ PA with bSuppressWait set to NO. Waiting here will block main Process() which
+ should receive NACK/ACK (but it can't because it is it who called callback
+ which is triggering PA resending) - IMX6: allowing infinite timeout on read
+ from dev file. - SocketRead() was changed to polling (instead of select()).
+ In order for this to work, kernel driver must be returning POLLHUP to
+ interrupt waiting SocketRead(). Otherwise infinite timeout will block CEC
+ adapter termination. - Building adaptations for imx6 - Don't Wait for PA
+ update thread's start. Return immediately. - Fix stopping the thread /
+ closing the port
 
 ---
  configure.ac                                       | 411 ---------------------
@@ -22,10 +22,10 @@ Subject: [PATCH] - update to IMX6 support - handle releasing adapter better on
  src/lib/adapter/IMX/IMXCECAdapterCommunication.h   |  35 +-
  src/lib/adapter/IMX/IMXCECAdapterMessageQueue.h    | 118 ++++++
  src/lib/adapter/IMX/mxc_hdmi-cec.h                 |  47 +++
- src/libcec/CMakeLists.txt                          |  14 +-
+ src/libcec/CMakeLists.txt                          |  12 +-
  src/libcec/cmake/CheckPlatformSupport.cmake        |  28 +-
  src/libcec/cmake/DisplayPlatformSupport.cmake      |   6 +
- 9 files changed, 412 insertions(+), 641 deletions(-)
+ 9 files changed, 411 insertions(+), 640 deletions(-)
  delete mode 100644 configure.ac
  delete mode 100644 src/lib/adapter/IMX/AdapterMessageQueue.h
  create mode 100644 src/lib/adapter/IMX/IMXCECAdapterMessageQueue.h
@@ -1256,10 +1256,10 @@ index 0000000..bc5bbce
 +#endif				/* !_HDMICEC_H_ */
 +
 diff --git a/src/libcec/CMakeLists.txt b/src/libcec/CMakeLists.txt
-index a7cc6c4..bd13277 100644
+index a494533..656d64c 100644
 --- a/src/libcec/CMakeLists.txt
 +++ b/src/libcec/CMakeLists.txt
-@@ -170,13 +170,17 @@ install(FILES ${PROJECT_SOURCE_DIR}/../../include/cec.h
+@@ -173,11 +173,15 @@ install(FILES ${PROJECT_SOURCE_DIR}/../../include/cec.h
          DESTINATION include/libcec)
  
  # libCEC target
@@ -1273,20 +1273,17 @@ index a7cc6c4..bd13277 100644
 +install(TARGETS cec cecstatic
          DESTINATION ${LIB_DESTINATION})
 -set_target_properties(cec PROPERTIES VERSION   ${LIBCEC_VERSION_MAJOR}.${LIBCEC_VERSION_MINOR}.${LIBCEC_VERSION_PATCH}
+-                                     SOVERSION ${LIBCEC_VERSION_MAJOR})
 +set_target_properties(cec cecstatic PROPERTIES VERSION   ${LIBCEC_VERSION_MAJOR}.${LIBCEC_VERSION_MINOR}.${LIBCEC_VERSION_PATCH}
-                                      SOVERSION ${LIBCEC_VERSION_MAJOR}.0)
--target_link_libraries(cec ${platform_LIBRARIES})
--target_link_libraries(cec ${CMAKE_THREAD_LIBS_INIT})
-+target_link_libraries(cec cecstatic ${platform_LIBRARIES})
-+target_link_libraries(cec cecstatic ${CMAKE_THREAD_LIBS_INIT})
++                                      SOVERSION ${LIBCEC_VERSION_MAJOR}.0)
+ target_link_libraries(cec ${p8-platform_LIBRARIES})
+ target_link_libraries(cec ${CMAKE_THREAD_LIBS_INIT})
  
- include(cmake/LinkPlatformSupport.cmake)
- include(cmake/DisplayPlatformSupport.cmake)
 diff --git a/src/libcec/cmake/CheckPlatformSupport.cmake b/src/libcec/cmake/CheckPlatformSupport.cmake
-index 74f3690..4bd8043 100644
+index 3719235..c393309 100644
 --- a/src/libcec/cmake/CheckPlatformSupport.cmake
 +++ b/src/libcec/cmake/CheckPlatformSupport.cmake
-@@ -72,12 +72,16 @@ else()
+@@ -91,12 +91,16 @@ else()
    endif()
  
    # xrandr
@@ -1309,7 +1306,7 @@ index 74f3690..4bd8043 100644
    else()
      set(HAVE_RANDR 0)
    endif()
-@@ -119,6 +123,18 @@ else()
+@@ -140,6 +144,18 @@ else()
    else()
      set(HAVE_EXYNOS_API 0)
    endif()
@@ -1329,11 +1326,11 @@ index 74f3690..4bd8043 100644
  
  # rt
 diff --git a/src/libcec/cmake/DisplayPlatformSupport.cmake b/src/libcec/cmake/DisplayPlatformSupport.cmake
-index feee111..57f75dd 100644
+index 9dcaacf..72a75a1 100644
 --- a/src/libcec/cmake/DisplayPlatformSupport.cmake
 +++ b/src/libcec/cmake/DisplayPlatformSupport.cmake
-@@ -44,6 +44,12 @@ else()
-   message(STATUS "Exynos support:                         no")
+@@ -50,5 +50,11 @@ else()
+   message(STATUS "Python support:                         no")
  endif()
  
 +if (HAVE_IMX_API)
@@ -1342,6 +1339,8 @@ index feee111..57f75dd 100644
 +  message(STATUS "i.MX6 support:                          no")
 +endif()
 +
- if (HAVE_PYTHON)
-   message(STATUS "Python support:                         version ${PYTHONLIBS_VERSION_STRING} (${PYTHON_VERSION})")
- else()
+ message(STATUS "lib info: ${LIB_INFO}")
+ 
+-- 
+2.7.4
+
