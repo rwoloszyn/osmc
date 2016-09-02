@@ -211,7 +211,6 @@ then
 	export LDFLAGS="" && \
 	./configure \
 		--prefix=/usr \
-		--disable-vtbdecoder \
 		--disable-vaapi \
 		--disable-vdpau \
 		--disable-pulse \
@@ -219,8 +218,6 @@ then
 		--disable-openmax \
 		--enable-optical-drive \
 		--enable-libbluray \
-                --enable-dvdcss \
-                --disable-joystick \
                 --disable-debug \
                 --enable-libcec \
 		--disable-optimizations \
@@ -234,7 +231,6 @@ then
 	export LDFLAGS="" && \
 	./configure \
 		--prefix=/usr \
-		--disable-vtbdecoder \
 		--enable-vaapi \
 		--disable-vdpau \
 		--disable-pulse \
@@ -242,8 +238,6 @@ then
 		--disable-openmax \
 		--enable-optical-drive \
 		--enable-libbluray \
-		--enable-dvdcss \
-		--disable-joystick \
 		--disable-debug \
 		--disable-optimizations
 	# Raspberry Pi Configuration
@@ -271,10 +265,7 @@ then
 		--disable-openmax \
 		--enable-optical-drive \
 		--enable-libbluray \
-		--enable-dvdcss \
-		--disable-joystick \
 		--disable-debug \
-		--disable-vtbdecoder \
 		--disable-vaapi \
 		--disable-vdpau \
 		--disable-pulse \
@@ -303,10 +294,7 @@ then
 		--disable-debug \
 		--disable-texturepacker \
 		--enable-optical-drive \
-		--enable-dvdcss \
 		--enable-libbluray \
-		--disable-joystick \
-		--disable-vtbdecoder \
 		--disable-pulse \
 		--disable-optimizations \
 		--with-platform=vero \
@@ -333,10 +321,7 @@ then
                 --disable-debug \
                 --disable-texturepacker \
                 --enable-optical-drive \
-                --enable-dvdcss \
                 --enable-libbluray \
-                --disable-joystick \
-                --disable-vtbdecoder \
                 --disable-pulse \
                 --disable-optimizations \
                 --with-platform=vero2 \
