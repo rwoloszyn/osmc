@@ -1,15 +1,15 @@
-From eabe736a67ab839a44a01453d5d4a5cd08744c48 Mon Sep 17 00:00:00 2001
+From b85e5c1bb1ab5ed012cc5ba3f71259459ac5ceb3 Mon Sep 17 00:00:00 2001
 From: Sam Nazarko <email@samnazarko.co.uk>
 Date: Sat, 13 Feb 2016 04:32:53 +0000
 Subject: [PATCH] Hacky way to enable passthrough on Vero 2
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp | 35 ++++++++++++++++++++++++++++-
- 1 file changed, 34 insertions(+), 1 deletion(-)
+ xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp | 33 ++++++++++++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
 
 diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
-index 78f272b..c23cd55 100644
+index f52d54a..8d51b89 100644
 --- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 +++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 @@ -38,6 +38,7 @@
@@ -19,7 +19,7 @@ index 78f272b..c23cd55 100644
 +#include "utils/SysfsUtils.h"
  #endif
  
- 
+ #ifdef TARGET_POSIX
 @@ -538,7 +539,37 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
    if (aml_present())
    {
@@ -58,3 +58,7 @@ index 78f272b..c23cd55 100644
 +    SysfsUtils::SetInt("/sys/class/audiodsp/digital_codec", aml_digital_codec);
    }
  #endif
+ 
+-- 
+2.7.4
+
