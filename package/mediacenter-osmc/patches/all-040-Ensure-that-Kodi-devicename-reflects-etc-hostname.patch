@@ -11,26 +11,12 @@ Do not worry about /etc/hosts as libnss-myhostname should handle this.
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- system/settings/settings.xml     |  2 +-
  xbmc/Application.cpp             |  1 +
  xbmc/GUIInfoManager.cpp          |  6 +++++-
  xbmc/network/NetworkServices.cpp | 17 +++++++++++++++++
  xbmc/settings/Settings.cpp       |  1 +
  5 files changed, 25 insertions(+), 2 deletions(-)
 
-diff --git a/system/settings/settings.xml b/system/settings/settings.xml
-index 84666e2..1b559c3 100644
---- a/system/settings/settings.xml
-+++ b/system/settings/settings.xml
-@@ -1697,7 +1697,7 @@
-       <group id="1" label="13000">
-         <setting id="services.devicename" type="string" label="1271" help="36321">
-           <level>0</level>
--          <default>Kodi</default>
-+          <default></default>
-           <control type="edit" format="string" />
-         </setting>
-       </group>
 diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
 index 0e6bd95..07ee861 100644
 --- a/xbmc/Application.cpp
