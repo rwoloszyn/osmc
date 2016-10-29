@@ -1,8 +1,7 @@
-From c2cbb7654154f6efa97b611a35b43fac9fc4db0b Mon Sep 17 00:00:00 2001
+From 77d57d47b4cca83be72ce87b5969d4a6462f3984 Mon Sep 17 00:00:00 2001
 From: Sam Nazarko <email@samnazarko.co.uk>
 Date: Tue, 4 Oct 2016 14:52:58 +0100
-Subject: [PATCH] [package] [mediacenter-osmc] Krypton: disable unwanted
- notifications from 3rd parties
+Subject: [PATCH] Krypton: disable unwanted notifications from 3rd parties
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
@@ -10,7 +9,7 @@ Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
  1 file changed, 4 insertions(+)
 
 diff --git a/xbmc/addons/AddonManager.cpp b/xbmc/addons/AddonManager.cpp
-index 2d6e82a..30906f5 100644
+index 2d6e82a..666fbb9 100644
 --- a/xbmc/addons/AddonManager.cpp
 +++ b/xbmc/addons/AddonManager.cpp
 @@ -24,6 +24,7 @@
@@ -21,16 +20,16 @@ index 2d6e82a..30906f5 100644
  
  #include "Addon.h"
  #include "addons/AddonBuilder.h"
-@@ -795,6 +796,9 @@ bool CAddonMgr::EnableAddon(const std::string& id)
- 
+@@ -796,6 +797,9 @@ bool CAddonMgr::EnableAddon(const std::string& id)
  bool CAddonMgr::IsAddonDisabled(const std::string& ID)
  {
+   CSingleLock lock(m_critSection);
 +  std::regex addons_disable("plugin.program.xbmchub.notifications");
 +  if (regex_match(ID, addons_disable))
 +    return true;
-   CSingleLock lock(m_critSection);
    return m_disabled.find(ID) != m_disabled.end();
  }
+ 
 -- 
 2.7.4
 
