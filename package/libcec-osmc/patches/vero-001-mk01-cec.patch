@@ -1,19 +1,19 @@
-From 575ac193e376ccfd73d9c43eb38ea7ee202deb4e Mon Sep 17 00:00:00 2001
+From d5db0b26d093cf133dc494c9bb0a22fa71560ac6 Mon Sep 17 00:00:00 2001
 From: Matus Kral <matuskral@me.com>
 Date: Wed, 10 Sep 2014 22:23:37 +0200
-Subject: [PATCH 2/3] - update to IMX6 support - handle releasing adapter
- better on close and unregister LA (change to 15) - don't change to bad PA
- (0000) - align cec_message data structure - IMX6: threaded PA change reporter
- to avoid blocking main process() - when transmitting PA, CECHandler transmits
- PA with bSuppressWait set to NO. Waiting here will block main Process() which
- should receive NACK/ACK (but it can't because it is it who called callback
- which is triggering PA resending) - IMX6: allowing infinite timeout on read
- from dev file. - SocketRead() was changed to polling (instead of select()).
- In order for this to work, kernel driver must be returning POLLHUP to
- interrupt waiting SocketRead(). Otherwise infinite timeout will block CEC
- adapter termination. - Building adaptations for imx6 - Don't Wait for PA
- update thread's start. Return immediately. - Fix stopping the thread /
- closing the port
+Subject: [PATCH] - update to IMX6 support - handle releasing adapter better on
+ close and unregister LA (change to 15) - don't change to bad PA (0000) -
+ align cec_message data structure - IMX6: threaded PA change reporter to avoid
+ blocking main process() - when transmitting PA, CECHandler transmits PA with
+ bSuppressWait set to NO. Waiting here will block main Process() which should
+ receive NACK/ACK (but it can't because it is it who called callback which is
+ triggering PA resending) - IMX6: allowing infinite timeout on read from dev
+ file. - SocketRead() was changed to polling (instead of select()). In order
+ for this to work, kernel driver must be returning POLLHUP to interrupt
+ waiting SocketRead(). Otherwise infinite timeout will block CEC adapter
+ termination. - Building adaptations for imx6 - Don't Wait for PA update
+ thread's start. Return immediately. - Fix stopping the thread / closing the
+ port
 
 ---
  configure.ac                                       | 411 ---------------------
@@ -23,9 +23,9 @@ Subject: [PATCH 2/3] - update to IMX6 support - handle releasing adapter
  src/lib/adapter/IMX/IMXCECAdapterMessageQueue.h    | 118 ++++++
  src/lib/adapter/IMX/mxc_hdmi-cec.h                 |  47 +++
  src/libcec/CMakeLists.txt                          |  12 +-
- src/libcec/cmake/CheckPlatformSupport.cmake        |  28 +-
+ src/libcec/cmake/CheckPlatformSupport.cmake        |  12 +
  src/libcec/cmake/DisplayPlatformSupport.cmake      |   6 +
- 9 files changed, 411 insertions(+), 640 deletions(-)
+ 9 files changed, 401 insertions(+), 634 deletions(-)
  delete mode 100644 configure.ac
  delete mode 100644 src/lib/adapter/IMX/AdapterMessageQueue.h
  create mode 100644 src/lib/adapter/IMX/IMXCECAdapterMessageQueue.h
@@ -1256,10 +1256,10 @@ index 0000000..bc5bbce
 +#endif				/* !_HDMICEC_H_ */
 +
 diff --git a/src/libcec/CMakeLists.txt b/src/libcec/CMakeLists.txt
-index a494533..656d64c 100644
+index d3eefa3..3f59faa 100644
 --- a/src/libcec/CMakeLists.txt
 +++ b/src/libcec/CMakeLists.txt
-@@ -173,11 +173,15 @@ install(FILES ${PROJECT_SOURCE_DIR}/../../include/cec.h
+@@ -176,11 +176,15 @@ install(FILES ${PROJECT_SOURCE_DIR}/../../include/cec.h
          DESTINATION include/libcec)
  
  # libCEC target
@@ -1280,37 +1280,13 @@ index a494533..656d64c 100644
  target_link_libraries(cec ${CMAKE_THREAD_LIBS_INIT})
  
 diff --git a/src/libcec/cmake/CheckPlatformSupport.cmake b/src/libcec/cmake/CheckPlatformSupport.cmake
-index 3719235..c393309 100644
+index 532f213..87ebe2c 100644
 --- a/src/libcec/cmake/CheckPlatformSupport.cmake
 +++ b/src/libcec/cmake/CheckPlatformSupport.cmake
-@@ -91,12 +91,16 @@ else()
+@@ -137,6 +137,18 @@ else()
+     list(APPEND CEC_SOURCES ${CEC_SOURCES_ADAPTER_EXYNOS})
    endif()
  
-   # xrandr
--  check_include_files("X11/Xlib.h;X11/Xatom.h;X11/extensions/Xrandr.h" HAVE_RANDR_HEADERS)
--  check_library_exists(Xrandr XRRGetScreenResources "" HAVE_RANDR_LIB)
--  if (HAVE_RANDR_HEADERS AND HAVE_RANDR_LIB)
--    set(LIB_INFO "${LIB_INFO}, randr")
--    list(APPEND CEC_SOURCES_PLATFORM platform/X11/randr-edid.cpp)
--    set(HAVE_RANDR 1)
-+  if (${HAVE_RANDR_API})
-+    check_include_files("X11/Xlib.h;X11/Xatom.h;X11/extensions/Xrandr.h" HAVE_RANDR_HEADERS)
-+    check_library_exists(Xrandr XRRGetScreenResources "" HAVE_RANDR_LIB)
-+    if (HAVE_RANDR_HEADERS AND HAVE_RANDR_LIB)
-+      set(LIB_INFO "${LIB_INFO}, randr")
-+      list(APPEND CEC_SOURCES_PLATFORM platform/X11/randr-edid.cpp)
-+      set(HAVE_RANDR 1)
-+    else()
-+      set(HAVE_RANDR 0)
-+    endif()
-   else()
-     set(HAVE_RANDR 0)
-   endif()
-@@ -140,6 +144,18 @@ else()
-   else()
-     set(HAVE_EXYNOS_API 0)
-   endif()
-+
 +  # iMX6
 +  if (${HAVE_IMX_API})
 +    set(LIB_INFO "${LIB_INFO}, iMX6")
@@ -1322,14 +1298,15 @@ index 3719235..c393309 100644
 +  else()
 +    set(HAVE_IMX_API 0)
 +  endif()
- endif()
- 
- # rt
++
+   # AOCEC
+   if (${HAVE_AOCEC_API})
+     set(LIB_INFO "${LIB_INFO}, AOCEC")
 diff --git a/src/libcec/cmake/DisplayPlatformSupport.cmake b/src/libcec/cmake/DisplayPlatformSupport.cmake
-index 9dcaacf..72a75a1 100644
+index 7ec10f5..dd26c58 100644
 --- a/src/libcec/cmake/DisplayPlatformSupport.cmake
 +++ b/src/libcec/cmake/DisplayPlatformSupport.cmake
-@@ -50,5 +50,11 @@ else()
+@@ -56,5 +56,11 @@ else()
    message(STATUS "Python support:                         no")
  endif()
  
