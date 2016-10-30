@@ -38,11 +38,10 @@ then
 	cp -ar amadec/*.so ${out}/usr/osmc/lib
 	$BUILD -C amcodec PREFIX="/usr/osmc"
 	if [ $? != 0 ]; then echo "Error occured building amcodec" && exit 1; fi
-	cp -ar amcodec/libamcodec.so.0.0 ${out}/usr/osmc/lib
+	cp -ar amcodec/*.so ${out}/usr/osmc/lib
 	cp -ar amcodec/include/*.h ../../files-dev/usr/osmc/include/amcodec
 	cp -ar amcodec/include/ppmgr/*.h ../../files-dev/usr/osmc/include/amcodec/ppmgr
 	cp -ar amcodec/include/amports/*.h ../../files-dev/usr/osmc/include/amcodec/amports
-	ln -sf libamcodec.so.0.0 ${out}/usr/osmc/lib/libamcodec.so
 	popd
         fix_arch_ctl "files/DEBIAN/control"
         fix_arch_ctl "files-dev/DEBIAN/control"
