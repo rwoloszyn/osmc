@@ -5,7 +5,7 @@
 
 . ../common.sh
 
-REV="d7f871b851fbc8eb87e0591263a2b65b8b480771"
+REV="4e7d53efae045fa020e808e10061c41c97da5bb2"
 echo -e "Building package mediacenter-skin-osmc"
 echo -e "Downloading skin"
 pull_source "https://github.com/osmc/skin.osmc/archive/${REV}.tar.gz" "$(pwd)/src"
