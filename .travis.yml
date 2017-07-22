@@ -8,8 +8,8 @@ services:
 before_install:
 - docker pull debian:jessie
 - docker run -d -p 127.0.0.1:80:4567 debian:jessie /bin/sh -c "cd /root/sinatra; bundle exec foreman start;"
-- docker ps -a
-- docker run debian:jessie /bin/sh -c "cd /root/sinatra; bundle exec rake test"
+#- docker ps -a
+#- docker run debian:jessie /bin/sh -c "cd /root/sinatra; bundle exec rake test"
 - sudo apt-get -qq update
 - sudo apt-get install -y build-essential git
 - cd toolchain/armv7-toolchain-osmc
