@@ -12,7 +12,7 @@ before_install:
 #- docker run debian:jessie /bin/sh -c "cd /root/sinatra; bundle exec rake test"
 - sudo apt-get -qq update
 - sudo apt-get install -y build-essential git
-- ll
+- ls -a
 #- cd toolchain/armv7-toolchain-osmc
 
 #script:
